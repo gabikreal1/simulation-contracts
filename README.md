@@ -2,6 +2,12 @@
 
 **A trustless crypto-AI guessing game on Solana.**
 
+<div align="center">
+
+https://github.com/user/simulation-contracts/raw/main/assets/walkthrough.mp4
+
+</div>
+
 Players deposit SOL into a program-owned escrow and compete to guess a secret answer. The answer is cryptographically committed before any deposits occur, ensuring provably fair outcomes through an on-chain commit-reveal scheme.
 
 Built with [Anchor 0.30.1](https://www.anchor-lang.com/) | Deployed on [Solana Devnet](https://explorer.solana.com/address/FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1?cluster=devnet)
