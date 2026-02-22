@@ -1,5 +1,9 @@
 # Overview
 
+{% embed url="https://github.com/gabikreal1/simulation-contracts/raw/main/assets/walkthrough.mp4" %}
+Contract Walkthrough (30s)
+{% endembed %}
+
 ## What is Alon's Box?
 
 Alon's Box is a trustless crypto-AI guessing game built on Solana. It combines cryptographic commitment schemes with program-derived account (PDA) escrows to create a provably fair game where:
