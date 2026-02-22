@@ -4,13 +4,13 @@
 
 <div align="center">
 
-https://github.com/user/simulation-contracts/raw/main/assets/walkthrough.mp4
+https://github.com/gabikreal1/simulation-contracts/raw/main/assets/walkthrough.mp4
 
 </div>
 
 Players deposit SOL into a program-owned escrow and compete to guess a secret answer. The answer is cryptographically committed before any deposits occur, ensuring provably fair outcomes through an on-chain commit-reveal scheme.
 
-Built with [Anchor 0.30.1](https://www.anchor-lang.com/) | Deployed on [Solana Devnet](https://explorer.solana.com/address/FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1?cluster=devnet) | [Docs](https://YOUR_USERNAME.gitbook.io/alons-box)
+Built with [Anchor 0.30.1](https://www.anchor-lang.com/) | Deployed on [Solana Devnet](https://explorer.solana.com/address/FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1?cluster=devnet) | [Docs](https://simulation-theory.gitbook.io/simulation-theory-docs)
 
 ```
 Program ID: FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1
@@ -143,7 +143,7 @@ solana program deploy target/deploy/alons_box.so
 
 ## Documentation
 
-**[Read the full docs on GitBook](https://YOUR_USERNAME.gitbook.io/alons-box)** | [Browse locally](./docs/SUMMARY.md)
+**[Read the full docs on GitBook](https://simulation-theory.gitbook.io/simulation-theory-docs)** | [Browse locally](./docs/SUMMARY.md)
 
 - [Overview](./docs/introduction/overview.md)
 - [Getting Started](./docs/introduction/getting-started.md)
