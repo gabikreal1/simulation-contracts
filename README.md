@@ -145,21 +145,28 @@ solana program deploy target/deploy/alons_box.so
 
 **[Read the full docs on GitBook](https://simulation-theory.gitbook.io/simulation-theory-docs)** | [Browse locally](./docs/SUMMARY.md)
 
-- [Overview](./docs/introduction/overview.md)
-- [Getting Started](./docs/introduction/getting-started.md)
-- [Architecture](./docs/protocol/architecture.md)
-- [Commit-Reveal Scheme](./docs/protocol/commit-reveal.md)
-- [PDA Accounts](./docs/protocol/pda-accounts.md)
-- [Instructions Reference](./docs/protocol/instructions.md)
-- [Payout Distribution](./docs/protocol/payout-distribution.md)
-- [Error Codes](./docs/protocol/error-codes.md)
-- [Security Model](./docs/security/security-model.md)
-- [Test Coverage](./docs/security/adversarial-testing.md)
-- [Building](./docs/developers/building.md)
-- [Testing Guide](./docs/developers/testing.md)
-- [Deployment](./docs/developers/deployment.md)
-- [Backend Integration](./docs/developers/integration.md)
+### Platform (SSE)
+
+- [SSE Overview](./docs/platform/overview.md)
+- [Platform Architecture](./docs/platform/development/architecture.md)
+- [Design Pillars](./docs/platform/game-design/design-pillars.md)
+- [Token Flow](./docs/platform/tokenomics/token-flow.md)
 - [Roadmap](./docs/roadmap.md)
+
+### Alon's Box
+
+- [Game Overview](./docs/games/alons-box/overview.md)
+- [Building](./docs/games/alons-box/development/building.md)
+- [Architecture](./docs/games/alons-box/development/architecture.md)
+- [Commit-Reveal Scheme](./docs/games/alons-box/development/commit-reveal.md)
+- [PDA Accounts](./docs/games/alons-box/development/pda-accounts.md)
+- [Instructions Reference](./docs/games/alons-box/development/instructions.md)
+- [Payout Distribution](./docs/games/alons-box/tokenomics/payout-distribution.md)
+- [Error Codes](./docs/games/alons-box/development/error-codes.md)
+- [Security Model](./docs/games/alons-box/development/security-model.md)
+- [Testing Guide](./docs/games/alons-box/development/testing.md)
+- [Deployment](./docs/games/alons-box/development/deployment.md)
+- [Backend Integration](./docs/games/alons-box/development/integration.md)
 
 ---
 

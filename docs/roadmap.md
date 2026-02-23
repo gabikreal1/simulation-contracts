@@ -2,13 +2,21 @@
 
 ## Vision
 
-Alon's Box aims to become a verifiable, trustless crypto-AI game where critical components are provably fair through hardware-attested execution. The current contract handles fund escrow and commitment verification on-chain, with answers cryptographically committed before deposits. The roadmap moves AI inference into Trusted Execution Environments (TEEs), providing cryptographic attestation that the correct code ran without tampering.
+The SSE platform aims to become a verifiable, trustless crypto-AI gaming ecosystem where critical components are provably fair through hardware-attested execution. The roadmap progresses from working smart contracts through TEE integration to a fully decentralized operator network, while expanding the game portfolio.
+
+---
+
+## Phase 0: Conceptual Prototype (Completed)
+
+- [x] Non-functional demo
+- [x] Narrative + UX proof
+- [x] Product design documents (SSE + Alon's Box)
 
 ---
 
 ## Phase 1: Foundation (Completed)
 
-**On-chain escrow with commit-reveal verification**
+**Alon's Box: On-chain escrow with commit-reveal verification**
 
 - [x] Anchor smart contract with 5 instructions
 - [x] Commit-reveal scheme (SHA-256)
@@ -21,11 +29,32 @@ Alon's Box aims to become a verifiable, trustless crypto-AI game where critical 
 
 ---
 
-## Phase 2: TEE Execution Environment
+## Phase 2: Playable MVP
+
+**SSE Prediction Rounds + Alon's Box live gameplay**
+
+- [ ] Hourly synthetic rounds (SSE)
+- [ ] Stake + argument injection
+- [ ] AI verdict + rationale
+- [ ] On-chain settlement
+- [ ] Round archive
+- [ ] Alon's Box: playable frontend
+
+---
+
+## Phase 2.5: Thematic Expansion
+
+- [ ] Realm-based rounds
+- [ ] Realm-specific AI Judge tuning
+- [ ] Community identity formation
+
+---
+
+## Phase 3: TEE Execution Environment
 
 **Move AI inference into Phala Network's TEE infrastructure**
 
-The backend currently generates answers and commits them on-chain. With Phala, the LLM runs inside an Intel TDX confidential VM on Phala Cloud. The enclave generates the answer, computes the commit hash, and signs it with an enclave-derived key -- all hardware-attested. No one, including the node operator, can observe or tamper with the inference.
+The backend currently generates answers and commits them on-chain. With Phala, the LLM runs inside an Intel TDX confidential VM on Phala Cloud. The enclave generates the answer, computes the commit hash, and signs it with an enclave-derived key -- all hardware-attested.
 
 ### Why Phala?
 
@@ -33,7 +62,7 @@ The backend currently generates answers and commits them on-chain. With Phala, t
 
 - **Phala Cloud** -- Deploy containerized LLMs into Intel TDX confidential VMs with GPU passthrough
 - **dstack** -- Open-source SDK for building TEE applications with built-in remote attestation and key derivation
-- **Remote Attestation** -- Intel TDX attestation quotes are verifiable on-chain or via Phala's attestation oracle, proving the exact code and model that ran
+- **Remote Attestation** -- Intel TDX attestation quotes are verifiable on-chain or via Phala's attestation oracle
 - **LLM support** -- Confidential VMs can run full-size LLMs (not limited to tiny ZK-friendly models)
 
 ### Architecture
@@ -83,7 +112,26 @@ The backend currently generates answers and commits them on-chain. With Phala, t
 
 ---
 
-## Phase 3: Decentralized Oracle Network
+## Phase 3.5: Enhanced Economic Layer + Human Architect
+
+- [ ] Logic Multipliers (top influential arguments)
+- [ ] Friendly Pools integration
+- [ ] Advanced analytics / stake graph
+- [ ] Player profiles and round history
+- [ ] User-created events (curated)
+- [ ] Event designer reputation
+
+---
+
+## Phase 4: Rich Media SSE
+
+- [ ] "Battle Visuals" (generated images)
+- [ ] Generative highlight scenes
+- [ ] Event recap outputs
+
+---
+
+## Phase 5: Decentralized Oracle Network
 
 **Replace single authority with a decentralized operator set**
 
@@ -114,13 +162,36 @@ The backend currently generates answers and commits them on-chain. With Phala, t
 
 ---
 
+## Phase 6: Agentic SSE Arena
+
+- [ ] AI agents participate autonomously
+- [ ] Bot-vs-bot / bot-vs-human events
+- [ ] Strategic agent competitions
+- [ ] Human-machine market experiments
+
+---
+
+## Ongoing
+
+- Jackpot modifiers (high-variance special rounds)
+- Synthetic stress tests of real-world dynamics
+- New game launches in the SSE ecosystem
+
+---
+
 ## Timeline
 
 | Phase | Focus | Status |
 |-------|-------|--------|
+| Phase 0 | Conceptual prototype | Completed |
 | Phase 1 | On-chain escrow + commit-reveal | Completed |
-| Phase 2 | TEE execution environment (Phala) | Next |
-| Phase 3 | Decentralized oracle network | Planned |
+| Phase 2 | Playable MVP | Next |
+| Phase 2.5 | Thematic expansion (Realms) | Planned |
+| Phase 3 | TEE execution (Phala) | Planned |
+| Phase 3.5 | Enhanced economy + human architects | Planned |
+| Phase 4 | Rich media SSE | Planned |
+| Phase 5 | Decentralized oracle network | Planned |
+| Phase 6 | Agentic SSE arena | Planned |
 
 ---
 
