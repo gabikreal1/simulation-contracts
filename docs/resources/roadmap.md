@@ -23,6 +23,9 @@ The SSE platform aims to become a verifiable, trustless crypto-AI gaming ecosyst
 - [x] PDA escrow (Vault) with deterministic payouts
 - [x] Sequential round management with rollover
 - [x] Evidence distribution with 30% cap
+- [x] Emergency dead man's switch (permissionless after 24hr)
+- [x] Account closing for rent recovery
+- [x] On-chain events for monitoring
 - [x] 29 tests (8 core + 21 adversarial)
 - [x] Devnet deployment
 - [x] IDL generation and TypeScript types
@@ -203,3 +206,17 @@ Interested in contributing to the protocol's development? Key areas where we nee
 - **Security Auditing** -- Review of contract logic and test coverage
 - **Frontend Development** -- Building the player-facing application
 - **DevOps** -- CI/CD, monitoring, and infrastructure
+
+---
+
+## Also in Development
+
+| Game | Description |
+|------|-------------|
+| **2 Pills** | Players choose between two sides, each leading to radically different simulated outcomes that test risk tolerance and belief systems |
+| **Darwin Arena** | Players create a character and send them through 100 unpredictable stress events to see how long they survive and adapt under pressure |
+| **Play or Exit** | Participants decide whether to continue risking their position in an unpredictable simulation or leave early and secure what they have earned |
+| **Unicorn Factory** | Players build startups for an AI-generated future and compete to grow the only ideas capable of surviving into unicorn companies |
+| **Alien Wants You** | Players attempt to communicate with an alien intelligence that constantly changes its expectations and chooses only a few worthy contacts |
+| **Foresight Space** | Participants predict future events and explore alternative timelines where strategic foresight determines success |
+| **Socratic Engine** | Humans and AI engage in structured philosophical debates where questioning, reasoning, and persuasion shape the final outcome |
