@@ -10,10 +10,10 @@ https://github.com/gabikreal1/simulation-contracts/raw/main/assets/walkthrough.m
 
 Players deposit SOL into a program-owned escrow and compete to guess a secret answer. The answer is cryptographically committed before any deposits occur, ensuring provably fair outcomes through an on-chain commit-reveal scheme.
 
-Built with [Anchor 0.30.1](https://www.anchor-lang.com/) | Deployed on [Solana Devnet](https://explorer.solana.com/address/FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1?cluster=devnet) | [Docs](https://simulation-theory.gitbook.io/simulation-theory-docs)
+Built with [Anchor 0.31.1](https://www.anchor-lang.com/) | Deployed on [Solana Devnet](https://explorer.solana.com/address/J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa?cluster=devnet) | [Docs](https://simulation-theory.gitbook.io/simulation-theory-docs)
 
 ```
-Program ID: FMczpL5fdYdQhvTq7jKHkg5F9emaYHCYF8bdZJQbgnC1
+Program ID: J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa
 ```
 
 ---
@@ -47,24 +47,21 @@ No one -- not even the backend -- can change the answer after players deposit. T
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (stable + nightly)
-- [Solana CLI](https://docs.solanalabs.com/cli/install) v1.18+
-- [Anchor CLI](https://www.anchor-lang.com/docs/installation) v0.30.1
+- [Solana CLI](https://docs.solanalabs.com/cli/install) v2.0+
+- [Anchor CLI](https://www.anchor-lang.com/docs/installation) v0.31.1
 - [Node.js](https://nodejs.org/) v18+
 
 ### Build
 
 ```bash
-# Build the on-chain program
-cargo build-sbf --manifest-path programs/alons-box/Cargo.toml --sbf-out-dir target/deploy
-
-# Generate the IDL
-node generate_idl.js
+# Build the on-chain program and generate IDL
+anchor build
 ```
 
 ### Test
 
 ```bash
-# Run all 21 tests (spins up local validator automatically)
+# Run all 29 tests (spins up local validator automatically)
 anchor test --skip-build
 
 # Or via npm
@@ -97,6 +94,12 @@ solana program deploy target/deploy/alons_box.so
                                                             +----------+
                                                             |  Treasury|
                                                             +----------+
+
+  If authority goes offline for 24+ hours after round end:
+
++----------+  emergency_expire  +------------------+  buyback/rollover
+|  Anyone  | -----------------> |  Vault PDA       | ----------------->
++----------+                    +------------------+
 ```
 
 | PDA Account | Seeds | Purpose |
@@ -105,6 +108,25 @@ solana program deploy target/deploy/alons_box.so
 | `Vault` | `["vault"]` | Singleton SOL escrow holding all deposits |
 | `Round` | `["round", round_id]` | Per-round state: commit hash, status, deposits |
 | `Deposit` | `["deposit", round_id, user]` | Per-user deposit tracking |
+
+---
+
+## Instructions
+
+The program exposes 8 instructions:
+
+| Instruction | Access | Description |
+|-------------|--------|-------------|
+| `initialize` | One-time | Set up game state and vault |
+| `create_round` | Authority | Open a new round with committed answer hash |
+| `deposit` | Public | Deposit SOL into an active round |
+| `settle` | Authority | Resolve round with a winner, verify hash, distribute payouts |
+| `expire` | Authority | End round with no winner, verify hash, distribute funds |
+| `emergency_expire` | **Permissionless** | Dead man's switch — expire a round 24hrs after `ends_at` if authority is offline |
+| `close_deposit` | Authority | Close a Deposit PDA after round ends, recover rent |
+| `close_round` | Authority | Close a Round PDA after round ends, recover rent |
+
+See [Instructions Reference](./docs/developers/contracts/alons-box/instructions.md) for full details.
 
 ---
 
@@ -136,8 +158,13 @@ solana program deploy target/deploy/alons_box.so
 - **Sequential round IDs** -- Prevents round skipping or replay attacks
 - **Evidence cap** -- Evidence payouts hard-capped at 30% to prevent drain attacks
 - **Authority checks** -- Only the designated authority can create rounds, settle, or expire
+- **Buyback wallet validation** -- `expire` validates buyback wallet against `GameState.buyback_wallet`
+- **Round timer enforcement** -- `create_round` validates `ends_at` is in the future
+- **Emergency dead man's switch** -- Permissionless `emergency_expire` callable 24 hours after `ends_at`, prevents permanent fund lock if authority goes offline
+- **Account closing** -- `close_deposit` and `close_round` recover rent from settled/expired round PDAs
 - **Overflow protection** -- All arithmetic uses `checked_add` / `checked_mul`
-- **21 tests** -- 8 core flow + 13 adversarial covering auth attacks, replay attacks, payout manipulation, and round ID manipulation
+- **On-chain events** -- All state transitions emit events for off-chain monitoring and indexing
+- **29 tests** -- Core flow + adversarial covering auth attacks, replay attacks, payout manipulation, round ID manipulation, emergency expiry, and account closing
 
 ---
 
@@ -145,28 +172,33 @@ solana program deploy target/deploy/alons_box.so
 
 **[Read the full docs on GitBook](https://simulation-theory.gitbook.io/simulation-theory-docs)** | [Browse locally](./docs/SUMMARY.md)
 
-### Platform (SSE)
+### Protocol
 
-- [SSE Overview](./docs/platform/overview.md)
-- [Platform Architecture](./docs/platform/development/architecture.md)
-- [Design Pillars](./docs/platform/game-design/design-pillars.md)
-- [Token Flow](./docs/platform/tokenomics/token-flow.md)
-- [Roadmap](./docs/roadmap.md)
+- [SSE Protocol Overview](./docs/protocol/overview.md)
+- [AI Systems](./docs/protocol/ai-systems.md)
+- [Trust Model](./docs/protocol/trust-model.md)
+- [$SIMULATION Token](./docs/token/overview.md)
+- [Roadmap](./docs/resources/roadmap.md)
 
 ### Alon's Box
 
 - [Game Overview](./docs/games/alons-box/overview.md)
-- [Building](./docs/games/alons-box/development/building.md)
-- [Architecture](./docs/games/alons-box/development/architecture.md)
-- [Commit-Reveal Scheme](./docs/games/alons-box/development/commit-reveal.md)
-- [PDA Accounts](./docs/games/alons-box/development/pda-accounts.md)
-- [Instructions Reference](./docs/games/alons-box/development/instructions.md)
-- [Payout Distribution](./docs/games/alons-box/tokenomics/payout-distribution.md)
-- [Error Codes](./docs/games/alons-box/development/error-codes.md)
-- [Security Model](./docs/games/alons-box/development/security-model.md)
-- [Testing Guide](./docs/games/alons-box/development/testing.md)
-- [Deployment](./docs/games/alons-box/development/deployment.md)
-- [Backend Integration](./docs/games/alons-box/development/integration.md)
+- [Rounds](./docs/games/alons-box/rounds.md)
+- [Actions and Economy](./docs/games/alons-box/actions-and-economy.md)
+
+### Developers
+
+- [Architecture](./docs/developers/architecture.md)
+- [Getting Started](./docs/developers/getting-started.md)
+- [Instructions Reference](./docs/developers/contracts/alons-box/instructions.md)
+- [PDA Accounts](./docs/developers/contracts/alons-box/pda-accounts.md)
+- [Commit-Reveal Scheme](./docs/developers/contracts/alons-box/commit-reveal.md)
+- [Error Codes](./docs/developers/contracts/alons-box/error-codes.md)
+- [Security Model](./docs/developers/contracts/alons-box/security-model.md)
+- [Security Audit](./docs/developers/contracts/alons-box/audit.md)
+- [Testing Guide](./docs/developers/testing.md)
+- [Deployment](./docs/developers/deployment.md)
+- [Backend Integration](./docs/developers/integration.md)
 
 ---
 
@@ -174,20 +206,29 @@ solana program deploy target/deploy/alons_box.so
 
 ```
 programs/alons-box/src/
-  lib.rs              -- Program entry point, 5 instructions
+  lib.rs              -- Program entry point, 8 instructions
   state.rs            -- Account structs (GameState, Round, Deposit, Vault)
-  errors.rs           -- Custom error codes (6000-6008)
-  instructions/       -- Instruction handler modules
+  errors.rs           -- Custom error codes (6000-6011)
+  events.rs           -- On-chain event definitions
+  utils.rs            -- Shared helpers (vault transfers)
+  instructions/
+    mod.rs            -- Module re-exports
+    initialize.rs     -- Game setup
+    create_round.rs   -- Round creation with commit hash
+    deposit.rs        -- Player SOL deposits
+    settle.rs         -- Winner resolution and payouts
+    expire.rs         -- No-winner resolution and payouts
+    emergency_expire.rs -- Permissionless dead man's switch
+    close_deposit.rs  -- Deposit PDA rent recovery
+    close_round.rs    -- Round PDA rent recovery
 
 tests/
-  alons-box.ts        -- 21 tests (core flow + adversarial)
+  alons-box.ts        -- 29 tests (core flow + adversarial)
 
 target/
   deploy/alons_box.so -- Compiled BPF binary
   idl/alons_box.json  -- Interface Description Language
   types/alons_box.ts  -- Generated TypeScript types
-
-generate_idl.js       -- IDL generator (Anchor 0.30.x workaround)
 ```
 
 ---
@@ -196,7 +237,7 @@ generate_idl.js       -- IDL generator (Anchor 0.30.x workaround)
 
 | Component | Technology |
 |-----------|-----------|
-| Smart Contract | Rust + Anchor 0.30.1 |
+| Smart Contract | Rust + Anchor 0.31.1 |
 | Runtime | Solana BPF |
 | Hashing | SHA-256 (commit-reveal) |
 | Testing | TypeScript + ts-mocha + Chai |

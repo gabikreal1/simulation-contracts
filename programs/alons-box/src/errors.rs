@@ -20,4 +20,10 @@ pub enum AlonsBoxError {
     EvidenceMismatch,
     #[msg("Invalid round ID")]
     InvalidRoundId,
+    #[msg("Round is still active")]
+    RoundStillActive,
+    #[msg("Emergency grace period has not elapsed (24 hours after ends_at)")]
+    GracePeriodNotElapsed,
+    #[msg("Invalid end time: must be in the future")]
+    InvalidEndTime,
 }

@@ -1,59 +1,57 @@
 # Table of Contents
 
-## Platform: Simulated Synthetic Events (SSE)
+## Welcome
 
-- [Overview](platform/overview.md)
+- [What Is SIMULATION?](welcome/what-is-simulation.md)
 
-### Development
+## Protocol
 
-- [Architecture](platform/development/architecture.md)
-- [Tech Stack](platform/development/tech-stack.md)
-- [Shared Contract Patterns](platform/development/shared-contracts.md)
+- [SSE Protocol Overview](protocol/overview.md)
+- [AI Systems](protocol/ai-systems.md)
+- [Trust Model](protocol/trust-model.md)
+- [Fee Structure](protocol/fee-structure.md)
 
-### Game Design
+## Token
 
-- [Design Pillars](platform/game-design/design-pillars.md)
-- [AI Systems](platform/game-design/ai-systems.md)
-- [Trust and Fairness](platform/game-design/trust-and-fairness.md)
-- [Realms](platform/game-design/realms.md)
+- [$SIMULATION Token](token/overview.md)
 
-### Tokenomics
+## Games
 
-- [Token Flow](platform/tokenomics/token-flow.md)
-- [Fee Structure](platform/tokenomics/fee-structure.md)
-
----
-
-## Game: Alon's Box
+### Alon's Box
 
 - [Overview](games/alons-box/overview.md)
+- [Rounds](games/alons-box/rounds.md)
+- [Actions and Economy](games/alons-box/actions-and-economy.md)
+- [Realms](games/alons-box/realms.md)
 
-### Development
+## Developers
 
-- [Building](games/alons-box/development/building.md)
-- [Architecture](games/alons-box/development/architecture.md)
-- [Commit-Reveal Scheme](games/alons-box/development/commit-reveal.md)
-- [PDA Accounts](games/alons-box/development/pda-accounts.md)
-- [Instructions Reference](games/alons-box/development/instructions.md)
-- [Error Codes](games/alons-box/development/error-codes.md)
-- [Security Model](games/alons-box/development/security-model.md)
-- [Testing Guide](games/alons-box/development/testing.md)
-- [Deployment](games/alons-box/development/deployment.md)
-- [Backend Integration](games/alons-box/development/integration.md)
+- [Architecture](developers/architecture.md)
+- [Tech Stack](developers/tech-stack.md)
+- [Getting Started](developers/getting-started.md)
 
-### Game Design
+### Contracts
 
-- [Round Lifecycle](games/alons-box/game-design/round-lifecycle.md)
-- [Player Actions and Economy](games/alons-box/game-design/player-actions.md)
-- [Realms](games/alons-box/game-design/realms.md)
+- [Shared Patterns](developers/contracts/shared-patterns.md)
 
-### Tokenomics
+#### Alon's Box
 
-- [Payout Distribution](games/alons-box/tokenomics/payout-distribution.md)
+- [Instructions Reference](developers/contracts/alons-box/instructions.md)
+- [PDA Accounts](developers/contracts/alons-box/pda-accounts.md)
+- [Commit-Reveal Scheme](developers/contracts/alons-box/commit-reveal.md)
+- [Error Codes](developers/contracts/alons-box/error-codes.md)
+- [Security Model](developers/contracts/alons-box/security-model.md)
+- [Security Audit](developers/contracts/alons-box/audit.md)
 
----
+### Guides
 
-## General
+- [Testing](developers/testing.md)
+- [Deployment](developers/deployment.md)
+- [Backend Integration](developers/integration.md)
 
-- [Roadmap](roadmap.md)
-- [Glossary](glossary.md)
+## Resources
+
+- [Roadmap](resources/roadmap.md)
+- [Glossary](resources/glossary.md)
+- [Contract Addresses](resources/contract-addresses.md)
+- [Links](resources/links.md)
