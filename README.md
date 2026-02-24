@@ -195,7 +195,6 @@ See [Instructions Reference](./docs/developers/contracts/alons-box/instructions.
 - [Commit-Reveal Scheme](./docs/developers/contracts/alons-box/commit-reveal.md)
 - [Error Codes](./docs/developers/contracts/alons-box/error-codes.md)
 - [Security Model](./docs/developers/contracts/alons-box/security-model.md)
-- [Security Audit](./docs/developers/contracts/alons-box/audit.md)
 - [Testing Guide](./docs/developers/testing.md)
 - [Deployment](./docs/developers/deployment.md)
 - [Backend Integration](./docs/developers/integration.md)

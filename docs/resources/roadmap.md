@@ -32,16 +32,18 @@ The SSE platform aims to become a verifiable, trustless crypto-AI gaming ecosyst
 
 ---
 
-## Phase 2: Playable MVP
+## Phase 2: Playable MVP (In Progress)
 
 **SSE Prediction Rounds + Alon's Box live gameplay**
 
+- [x] Alon's Box: playable frontend
+- [x] Alon's Box: backend integration
+- [x] Alon's Box: live on devnet
 - [ ] Hourly synthetic rounds (SSE)
 - [ ] Stake + argument injection
 - [ ] AI verdict + rationale
 - [ ] On-chain settlement
 - [ ] Round archive
-- [ ] Alon's Box: playable frontend
 
 ---
 
@@ -188,7 +190,7 @@ The backend currently generates answers and commits them on-chain. With Phala, t
 |-------|-------|--------|
 | Phase 0 | Conceptual prototype | Completed |
 | Phase 1 | On-chain escrow + commit-reveal | Completed |
-| Phase 2 | Playable MVP | Next |
+| Phase 2 | Playable MVP | In Progress |
 | Phase 2.5 | Thematic expansion (Realms) | Planned |
 | Phase 3 | TEE execution (Phala) | Planned |
 | Phase 3.5 | Enhanced economy + human architects | Planned |
@@ -198,14 +200,9 @@ The backend currently generates answers and commits them on-chain. With Phala, t
 
 ---
 
-## Contributing
+## Security
 
-Interested in contributing to the protocol's development? Key areas where we need help:
-
-- **TEE Integration** -- Experience with Phala Network, Intel TDX, or dstack
-- **Security Auditing** -- Review of contract logic and test coverage
-- **Frontend Development** -- Building the player-facing application
-- **DevOps** -- CI/CD, monitoring, and infrastructure
+We welcome security reviews of the contract logic and test coverage.
 
 ---
 

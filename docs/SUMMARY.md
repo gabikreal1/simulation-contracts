@@ -41,7 +41,6 @@
 - [Commit-Reveal Scheme](developers/contracts/alons-box/commit-reveal.md)
 - [Error Codes](developers/contracts/alons-box/error-codes.md)
 - [Security Model](developers/contracts/alons-box/security-model.md)
-- [Security Audit](developers/contracts/alons-box/audit.md)
 
 ### Guides
 
