@@ -5,6 +5,9 @@ anchor_version = "0.31.1"
 resolution = true
 skip-lint = false
 
+[programs.localnet]
+alons_box = "J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa"
+
 [programs.devnet]
 alons_box = "J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa"
 

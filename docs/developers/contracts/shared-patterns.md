@@ -54,14 +54,16 @@ Settlement Pool
     ├── Game-specific payouts (winners, contributors)
     ├── Treasury (protocol fee)
     ├── Buyback wallet ($SIMULATION token support)
-    └── Rollover (next round prize pool seed)
+    └── Rollover (tracked explicitly in GameState)
 ```
 
 | Destination | Wallet Source | Purpose |
 |-------------|-------------|---------|
 | Treasury | `GameState.treasury` | Protocol revenue |
 | Buyback | `GameState.buyback_wallet` | $SIMULATION token buyback |
-| Rollover | Stays in Vault PDA | Next round's starting pool |
+| Rollover | `GameState.rollover_balance` | Next round's starting pool (explicit tracking) |
+
+Rollover is tracked as an explicit `u64` field in `GameState`, not derived from vault balance. On settle (winner found), rollover is the residual after paying winner, evidence, and treasury. On expire (no winner), only current deposits are split — previous rollover is fully preserved.
 
 Exact percentages vary per game. See [Fee Structure](../../protocol/fee-structure.md).
 

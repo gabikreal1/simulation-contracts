@@ -10,6 +10,7 @@ pub struct EmergencyExpire<'info> {
     pub caller: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [b"game_state"],
         bump = game_state.bump,
     )]
@@ -59,42 +60,56 @@ pub fn handler(ctx: Context<EmergencyExpire>) -> Result<()> {
         AlonsBoxError::GracePeriodNotElapsed
     );
 
-    // Calculate pool and payouts (same formula as expire)
-    let pool = round
-        .total_deposits
-        .checked_add(round.rollover_in)
-        .ok_or(AlonsBoxError::MathOverflow)?;
+    // Calculate payouts from current deposits only (old rollover untouched)
+    let total_deposits = round.total_deposits;
+    let rollover_in = round.rollover_in;
 
-    // 47.5% buyback (4750 BPS)
-    let buyback_amount = pool
+    // 47.5% buyback (4750 BPS) — from deposits only
+    let buyback_amount = total_deposits
         .checked_mul(4750)
         .ok_or(AlonsBoxError::MathOverflow)?
         .checked_div(10000)
         .ok_or(AlonsBoxError::MathOverflow)?;
 
-    // 5% treasury (500 BPS)
-    let treasury_amount = pool
+    // 5% treasury (500 BPS) — from deposits only
+    let treasury_amount = total_deposits
         .checked_mul(500)
         .ok_or(AlonsBoxError::MathOverflow)?
         .checked_div(10000)
         .ok_or(AlonsBoxError::MathOverflow)?;
 
-    // Remaining 47.5% stays in vault as rollover
+    // Residual absorbs rounding dust
+    let rollover_added = total_deposits
+        .checked_sub(buyback_amount)
+        .ok_or(AlonsBoxError::MathOverflow)?
+        .checked_sub(treasury_amount)
+        .ok_or(AlonsBoxError::MathOverflow)?;
+
+    let rollover_out = rollover_in
+        .checked_add(rollover_added)
+        .ok_or(AlonsBoxError::MathOverflow)?;
 
     // Distribute from vault
     let vault_info = ctx.accounts.vault.to_account_info();
     transfer_from_vault(&vault_info, &ctx.accounts.buyback_wallet, buyback_amount)?;
     transfer_from_vault(&vault_info, &ctx.accounts.treasury, treasury_amount)?;
 
-    // Mark as expired (no answer reveal — answer is forfeit in emergency)
+    // Update rollover and mark as expired (no answer reveal — answer is forfeit in emergency)
+    ctx.accounts.game_state.rollover_balance = rollover_out;
+
     let round = &mut ctx.accounts.round;
     round.status = RoundStatus::Expired;
+
+    let pool = total_deposits
+        .checked_add(rollover_in)
+        .ok_or(AlonsBoxError::MathOverflow)?;
 
     emit!(EmergencyExpired {
         round_id: round.round_id,
         pool,
         buyback_amount,
         treasury_amount,
+        rollover_out,
         caller: ctx.accounts.caller.key(),
     });
 

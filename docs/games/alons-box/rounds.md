@@ -29,30 +29,34 @@ See [Actions and Economy](actions-and-economy.md) for costs and strategic tradeo
 
 The round settles immediately. Payouts:
 
-| Recipient | Share |
-|-----------|-------|
-| Winner | 50% (5000 BPS) |
-| Evidence providers | Up to 30% (3000 BPS cap) |
-| Treasury | 5% (500 BPS) |
-| Rollover | 15% (1500 BPS) |
+| Recipient | Share | Source |
+|-----------|-------|--------|
+| Winner | 50% (5000 BPS) | Full pool |
+| Evidence providers | Up to 30% (3000 BPS cap) | Full pool |
+| Treasury | 5% (500 BPS) | Full pool |
+| Rollover | ~15% (residual) | `pool - winner - evidence - treasury` |
 
 ### 2. Pot Reaches Cap
 
-Economy protection triggers when the pot hits a configurable SOL cap:
+Economy protection triggers when the pot hits a configurable SOL cap. Payouts are based on **current deposits only** — previous rollover is fully preserved:
 
-| Recipient | Share |
-|-----------|-------|
-| Buyback ($SIMULATION) | 47.5% (4750 BPS) |
-| Treasury | 5% (500 BPS) |
-| Rollover | 47.5% (4750 BPS) |
+| Recipient | Share | Source |
+|-----------|-------|--------|
+| Buyback ($SIMULATION) | 47.5% (4750 BPS) | Deposits only |
+| Treasury | 5% (500 BPS) | Deposits only |
+| Rollover added | ~47.5% (residual) | Deposits only |
+
+New rollover = old rollover + rollover added.
 
 ### 3. Timer Expires (No Winner, Pot Below Cap)
 
-| Recipient | Share |
-|-----------|-------|
-| Buyback ($SIMULATION) | 47.5% (4750 BPS) |
-| Treasury | 5% (500 BPS) |
-| Rollover | 47.5% (4750 BPS) |
+Same as pot cap — payouts from **deposits only**, rollover preserved:
+
+| Recipient | Share | Source |
+|-----------|-------|--------|
+| Buyback ($SIMULATION) | 47.5% (4750 BPS) | Deposits only |
+| Treasury | 5% (500 BPS) | Deposits only |
+| Rollover added | ~47.5% (residual) | Deposits only |
 
 ## State Machine
 

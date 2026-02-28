@@ -35,6 +35,7 @@ pub fn handler(ctx: Context<Initialize>, treasury: Pubkey, buyback_wallet: Pubke
     game_state.buyback_wallet = buyback_wallet;
     game_state.current_round_id = 0;
     game_state.bump = ctx.bumps.game_state;
+    game_state.rollover_balance = 0;
 
     let vault = &mut ctx.accounts.vault;
     vault.bump = ctx.bumps.vault;

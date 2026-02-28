@@ -8,10 +8,11 @@ pub struct GameState {
     pub buyback_wallet: Pubkey,
     pub current_round_id: u64,
     pub bump: u8,
+    pub rollover_balance: u64,
 }
 
 impl GameState {
-    pub const SIZE: usize = 8 + 32 + 32 + 32 + 8 + 1;
+    pub const SIZE: usize = 8 + 32 + 32 + 32 + 8 + 1 + 8;
 }
 
 // ── Round status enum ──

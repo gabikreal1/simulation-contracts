@@ -43,6 +43,7 @@ Sets up the global game state and vault. Called once at program deployment.
    - `treasury` = provided treasury pubkey
    - `buyback_wallet` = provided buyback pubkey
    - `current_round_id` = 0
+   - `rollover_balance` = 0
 2. Initializes `Vault` PDA (empty, holds SOL via lamport balance)
 
 ### Errors
@@ -84,20 +85,20 @@ Opens a new round with a committed answer hash. Authority-only.
 | `authority` | Yes | Yes | Must match `GameState.authority` |
 | `game_state` | Yes | No | Global state (round counter updated) |
 | `round` | Yes | No | PDA to be initialized `["round", round_id]` |
-| `vault` | No | No | Read-only, used to calculate rollover |
 | `system_program` | No | No | Solana System Program |
 
 ### Behavior
 
 1. Validates caller is the authority
 2. Validates `round_id == game_state.current_round_id + 1`
-3. Calculates rollover: `vault_lamports - rent_exempt_minimum`
-4. Initializes Round PDA with:
+3. Validates `ends_at > clock.unix_timestamp`
+4. Reads rollover from `game_state.rollover_balance`
+5. Initializes Round PDA with:
    - `status` = Active
    - `commit_hash` = provided hash
    - `total_deposits` = 0
-   - `rollover_in` = calculated rollover
-5. Increments `game_state.current_round_id`
+   - `rollover_in` = `game_state.rollover_balance`
+6. Increments `game_state.current_round_id`
 
 ### Errors
 
@@ -120,7 +121,6 @@ await program.methods
     authority: wallet.publicKey,
     gameState: gameStatePDA,
     round: roundPDA,
-    vault: vaultPDA,
     systemProgram: SystemProgram.programId,
   })
   .rpc();
@@ -201,7 +201,7 @@ Resolves a round with a winner. Authority-only. Reveals the answer, verifies the
 | Account | Writable | Signer | Description |
 |---------|----------|--------|-------------|
 | `authority` | Yes | Yes | Must match `GameState.authority` |
-| `game_state` | No | No | Used to validate treasury address |
+| `game_state` | Yes | No | Writable — `rollover_balance` updated with residual |
 | `round` | Yes | No | Must be Active status |
 | `vault` | Yes | No | Source of payouts |
 | `winner` | Yes | No | Receives 50% of pool |
@@ -224,9 +224,11 @@ Resolves a round with a winner. Authority-only. Reveals the answer, verifies the
    - 50% (5000 BPS) to winner
    - Evidence amounts to remaining accounts
    - 5% (500 BPS) to treasury
-   - 15% (1500 BPS) stays in vault as rollover
-10. Sets `round.status = Settled`
-11. Stores `revealed_answer` and `revealed_salt`
+10. Computes residual rollover: `rollover_out = pool - winner - evidence - treasury`
+11. Updates `game_state.rollover_balance = rollover_out`
+12. Sets `round.status = Settled`
+13. Stores `revealed_answer` and `revealed_salt`
+14. Emits `RoundSettled` event (includes `rollover_out`)
 
 ### Errors
 
@@ -278,24 +280,26 @@ Ends a round with no winner. Authority-only. Reveals the answer, verifies the co
 | Account | Writable | Signer | Description |
 |---------|----------|--------|-------------|
 | `authority` | Yes | Yes | Must match `GameState.authority` |
-| `game_state` | No | No | Used to validate treasury/buyback addresses |
+| `game_state` | Yes | No | Writable — `rollover_balance` updated |
 | `round` | Yes | No | Must be Active status |
 | `vault` | Yes | No | Source of payouts |
-| `treasury` | Yes | No | Receives 5% |
-| `buyback_wallet` | Yes | No | Receives 47.5% |
+| `treasury` | Yes | No | Receives 5% of deposits |
+| `buyback_wallet` | Yes | No | Receives 47.5% of deposits |
 
 ### Behavior
 
 1. Validates caller is the authority
 2. Validates answer and salt lengths
 3. Computes `SHA-256(answer:salt)` and verifies against `round.commit_hash`
-4. Calculates pool: `round.total_deposits + round.rollover_in`
-5. Distributes from Vault PDA:
-   - 47.5% (4750 BPS) to buyback wallet
-   - 5% (500 BPS) to treasury
-   - 47.5% stays in vault as rollover
-6. Sets `round.status = Expired`
-7. Stores `revealed_answer` and `revealed_salt`
+4. Reads `total_deposits` and `rollover_in` from the round
+5. Distributes from Vault PDA (**based on `total_deposits` only** — previous rollover is preserved):
+   - 47.5% (4750 BPS) of `total_deposits` to buyback wallet
+   - 5% (500 BPS) of `total_deposits` to treasury
+6. Computes residual: `rollover_added = total_deposits - buyback - treasury`
+7. Updates `game_state.rollover_balance = rollover_in + rollover_added`
+8. Sets `round.status = Expired`
+9. Stores `revealed_answer` and `revealed_salt`
+10. Emits `RoundExpired` event (includes `rollover_out`)
 
 ### Errors
 
@@ -338,11 +342,11 @@ None.
 | Account | Writable | Signer | Description |
 |---------|----------|--------|-------------|
 | `caller` | Yes | Yes | Anyone — no authority check |
-| `game_state` | No | No | Used to validate treasury/buyback addresses |
+| `game_state` | Yes | No | Writable — `rollover_balance` updated |
 | `round` | Yes | No | Must be Active status |
 | `vault` | Yes | No | Source of payouts |
-| `treasury` | Yes | No | Receives 5%, must match `GameState.treasury` |
-| `buyback_wallet` | Yes | No | Receives 47.5%, must match `GameState.buyback_wallet` |
+| `treasury` | Yes | No | Receives 5% of deposits, must match `GameState.treasury` |
+| `buyback_wallet` | Yes | No | Receives 47.5% of deposits, must match `GameState.buyback_wallet` |
 
 ### Behavior
 
@@ -350,13 +354,15 @@ None.
 2. Validates `clock > round.ends_at + 86400` (24-hour grace period)
 3. Validates `round.status == Active`
 4. Validates treasury and buyback wallet against GameState
-5. Calculates pool: `round.total_deposits + round.rollover_in`
-6. Distributes from Vault PDA:
-   - 47.5% (4750 BPS) to buyback wallet
-   - 5% (500 BPS) to treasury
-   - 47.5% stays in vault as rollover
-7. Sets `round.status = Expired`
-8. Does NOT store revealed answer/salt (answer is forfeit)
+5. Reads `total_deposits` and `rollover_in` from the round
+6. Distributes from Vault PDA (**based on `total_deposits` only** — previous rollover is preserved):
+   - 47.5% (4750 BPS) of `total_deposits` to buyback wallet
+   - 5% (500 BPS) of `total_deposits` to treasury
+7. Computes residual: `rollover_added = total_deposits - buyback - treasury`
+8. Updates `game_state.rollover_balance = rollover_in + rollover_added`
+9. Sets `round.status = Expired`
+10. Does NOT store revealed answer/salt (answer is forfeit)
+11. Emits `EmergencyExpired` event (includes `rollover_out`)
 
 ### Errors
 

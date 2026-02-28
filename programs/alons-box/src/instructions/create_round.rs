@@ -26,12 +26,6 @@ pub struct CreateRound<'info> {
     )]
     pub round: Account<'info, Round>,
 
-    #[account(
-        seeds = [b"vault"],
-        bump = vault.bump,
-    )]
-    pub vault: Account<'info, Vault>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -55,10 +49,7 @@ pub fn handler(
 
     game_state.current_round_id = round_id;
 
-    // Calculate rollover: vault balance minus rent-exempt minimum
-    let vault_lamports = ctx.accounts.vault.to_account_info().lamports();
-    let vault_rent = Rent::get()?.minimum_balance(Vault::SIZE);
-    let rollover = vault_lamports.saturating_sub(vault_rent);
+    let rollover = game_state.rollover_balance;
 
     let round = &mut ctx.accounts.round;
     round.round_id = round_id;

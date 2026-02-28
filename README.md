@@ -36,7 +36,7 @@ Backend commits SHA-256(answer:salt)
 2. **Deposit** -- Players deposit SOL into a program-owned Vault PDA
 3. **Reveal** -- The backend reveals the plaintext answer and salt
 4. **Verify** -- The contract recomputes the hash and verifies it matches the original commit
-5. **Payout** -- SOL is distributed automatically: 50% winner, up to 30% evidence, 5% treasury, 15% rollover
+5. **Payout** -- SOL is distributed automatically: 50% winner, up to 30% evidence, 5% treasury, ~15% rollover (residual)
 
 No one -- not even the backend -- can change the answer after players deposit. The hash is the proof.
 
@@ -61,7 +61,7 @@ anchor build
 ### Test
 
 ```bash
-# Run all 29 tests (spins up local validator automatically)
+# Run all 128 tests (spins up local validator automatically)
 anchor test --skip-build
 
 # Or via npm
@@ -104,7 +104,7 @@ solana program deploy target/deploy/alons_box.so
 
 | PDA Account | Seeds | Purpose |
 |-------------|-------|---------|
-| `GameState` | `["game_state"]` | Global config: authority, treasury, round counter |
+| `GameState` | `["game_state"]` | Global config: authority, treasury, round counter, rollover balance |
 | `Vault` | `["vault"]` | Singleton SOL escrow holding all deposits |
 | `Round` | `["round", round_id]` | Per-round state: commit hash, status, deposits |
 | `Deposit` | `["deposit", round_id, user]` | Per-user deposit tracking |
@@ -134,20 +134,24 @@ See [Instructions Reference](./docs/developers/contracts/alons-box/instructions.
 
 ### Settle (winner found)
 
-| Recipient | Share | Description |
-|-----------|-------|-------------|
-| Winner | 50% | Player who guessed correctly |
-| Evidence | up to 30% | Distributed to evidence providers |
-| Treasury | 5% | Protocol fee |
-| Rollover | 15% | Carried into the next round's prize pool |
+| Recipient | Share | Source | Description |
+|-----------|-------|--------|-------------|
+| Winner | 50% | Full pool | Player who guessed correctly |
+| Evidence | up to 30% | Full pool | Distributed to evidence providers |
+| Treasury | 5% | Full pool | Protocol fee |
+| Rollover | ~15% (residual) | Full pool | `pool - winner - evidence - treasury` |
+
+Pool = current deposits + rollover from previous round. Rollover is computed as a **residual** (subtraction) to capture all rounding dust.
 
 ### Expire (no winner)
 
-| Recipient | Share | Description |
-|-----------|-------|-------------|
-| Buyback Wallet | 47.5% | Token buyback mechanism |
-| Treasury | 5% | Protocol fee |
-| Rollover | 47.5% | Carried into the next round's prize pool |
+| Recipient | Share | Source | Description |
+|-----------|-------|--------|-------------|
+| Buyback Wallet | 47.5% | **Deposits only** | Token buyback mechanism |
+| Treasury | 5% | **Deposits only** | Protocol fee |
+| Rollover added | ~47.5% (residual) | **Deposits only** | `deposits - buyback - treasury` |
+
+Previous rollover is **fully preserved** on expire. Only current-round deposits are split. The new rollover = old rollover + rollover added.
 
 ---
 
@@ -164,7 +168,9 @@ See [Instructions Reference](./docs/developers/contracts/alons-box/instructions.
 - **Account closing** -- `close_deposit` and `close_round` recover rent from settled/expired round PDAs
 - **Overflow protection** -- All arithmetic uses `checked_add` / `checked_mul`
 - **On-chain events** -- All state transitions emit events for off-chain monitoring and indexing
-- **29 tests** -- Core flow + adversarial covering auth attacks, replay attacks, payout manipulation, round ID manipulation, emergency expiry, and account closing
+- **Explicit rollover tracking** -- `GameState.rollover_balance` tracks the prize pool explicitly. Unsolicited vault deposits are ignored. Expire preserves the full accumulated rollover
+- **Residual rounding** -- Rollover is computed as a residual (subtraction) in both settle and expire, capturing all integer-division dust
+- **128 tests** -- Core flow, rollover math, balance consistency, rounding dust, multi-round accumulation, adversarial attacks (auth, replay, payout manipulation, round ID), emergency expiry, and account closing
 
 ---
 
@@ -222,7 +228,8 @@ programs/alons-box/src/
     close_round.rs    -- Round PDA rent recovery
 
 tests/
-  alons-box.ts        -- 29 tests (core flow + adversarial)
+  alons-box.ts              -- 22 tests (core flow + adversarial)
+  rollover-accounting.ts    -- 106 tests (rollover math, balance consistency, rounding, multi-round, adversarial)
 
 target/
   deploy/alons_box.so -- Compiled BPF binary

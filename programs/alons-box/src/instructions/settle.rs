@@ -11,6 +11,7 @@ pub struct Settle<'info> {
     pub authority: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [b"game_state"],
         bump = game_state.bump,
         constraint = game_state.authority == authority.key() @ AlonsBoxError::Unauthorized,
@@ -118,7 +119,15 @@ pub fn handler<'a>(
     // Treasury (5%)
     transfer_from_vault(&vault_info, &ctx.accounts.treasury, treasury_amount)?;
 
-    // Remaining 15% + any unclaimed evidence stays in vault as rollover
+    // ── Update rollover: residual captures rounding dust ──
+    let rollover_out = pool
+        .checked_sub(winner_amount)
+        .ok_or(AlonsBoxError::MathOverflow)?
+        .checked_sub(total_evidence)
+        .ok_or(AlonsBoxError::MathOverflow)?
+        .checked_sub(treasury_amount)
+        .ok_or(AlonsBoxError::MathOverflow)?;
+    ctx.accounts.game_state.rollover_balance = rollover_out;
 
     // ── Update round state ──
     let round = &mut ctx.accounts.round;
@@ -133,6 +142,7 @@ pub fn handler<'a>(
         winner_amount,
         evidence_total: total_evidence,
         treasury_amount,
+        rollover_out,
     });
 
     Ok(())

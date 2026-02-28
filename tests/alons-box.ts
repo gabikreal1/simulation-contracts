@@ -111,7 +111,6 @@ describe("alons-box", () => {
                     authority: authority.publicKey,
                     gameState: gameStatePDA,
                     round: roundPDA,
-                    vault: vaultPDA,
                     systemProgram: SystemProgram.programId,
                 })
                 .rpc();
@@ -263,7 +262,6 @@ describe("alons-box", () => {
                     authority: authority.publicKey,
                     gameState: gameStatePDA,
                     round: roundPDA,
-                    vault: vaultPDA,
                     systemProgram: SystemProgram.programId,
                 })
                 .rpc();
@@ -290,13 +288,15 @@ describe("alons-box", () => {
                 .rpc();
         });
 
-        it("Expires — 47.5% buyback, 5% treasury, 47.5% rollover", async () => {
+        it("Expires — 47.5% buyback, 5% treasury from deposits only, rollover preserved", async () => {
             const round = await program.account.round.fetch(roundPDA);
-            const pool = round.totalDeposits.toNumber() + round.rolloverIn.toNumber();
+            const totalDeposits = round.totalDeposits.toNumber();
+            const rolloverIn = round.rolloverIn.toNumber();
 
-            const buybackExpected = Math.floor((pool * 4750) / 10000);
-            const treasuryExpected = Math.floor((pool * 500) / 10000);
-            const rolloverExpected = pool - buybackExpected - treasuryExpected;
+            // New math: percentages from deposits only, old rollover untouched
+            const buybackExpected = Math.floor((totalDeposits * 4750) / 10000);
+            const treasuryExpected = Math.floor((totalDeposits * 500) / 10000);
+            const rolloverAdded = totalDeposits - buybackExpected - treasuryExpected;
 
             const vaultBefore = await provider.connection.getBalance(vaultPDA);
             const buybackBefore = await provider.connection.getBalance(buybackKeypair.publicKey);
@@ -357,7 +357,6 @@ describe("alons-box", () => {
                         authority: fake.publicKey,
                         gameState: gameStatePDA,
                         round: roundPDA,
-                        vault: vaultPDA,
                         systemProgram: SystemProgram.programId,
                     })
                     .signers([fake])
@@ -383,7 +382,6 @@ describe("alons-box", () => {
                     authority: authority.publicKey,
                     gameState: gameStatePDA,
                     round: roundPDA,
-                    vault: vaultPDA,
                     systemProgram: SystemProgram.programId,
                 })
                 .rpc();
@@ -624,7 +622,6 @@ describe("alons-box", () => {
                     authority: authority.publicKey,
                     gameState: gameStatePDA,
                     round: roundPDA,
-                    vault: vaultPDA,
                     systemProgram: SystemProgram.programId,
                 })
                 .rpc();
@@ -724,7 +721,6 @@ describe("alons-box", () => {
                         authority: authority.publicKey,
                         gameState: gameStatePDA,
                         round: roundPDA,
-                        vault: vaultPDA,
                         systemProgram: SystemProgram.programId,
                     })
                     .rpc();
@@ -750,7 +746,6 @@ describe("alons-box", () => {
                         authority: authority.publicKey,
                         gameState: gameStatePDA,
                         round: roundPDA,
-                        vault: vaultPDA,
                         systemProgram: SystemProgram.programId,
                     })
                     .rpc();

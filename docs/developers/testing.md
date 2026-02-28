@@ -5,7 +5,7 @@
 ### Full Suite
 
 ```bash
-# Recommended: runs all 29 tests with local validator
+# Recommended: runs all 128 tests with local validator
 anchor test --skip-build
 
 # Via npm
@@ -21,7 +21,7 @@ The `--skip-build` flag is used because the program binary is pre-built. Anchor 
 
 ```
   alons-box
-    ✓ Initializes the game state (XXXms)
+    ✓ Initializes the game state
     Round 1 -- settle flow
       ✓ Creates round 1
       ✓ Player 1 deposits 0.3 SOL
@@ -31,34 +31,39 @@ The `--skip-build` flag is used because the program binary is pre-built. Anchor 
       ✓ Creates round 2 with rollover
       ✓ Player 1 deposits 0.5 SOL
       ✓ Expires round 2
-    Error cases
-      ✓ Rejects unauthorized create_round
-      ✓ Rejects settle with wrong hash
-      ✓ Rejects deposit on settled round
-    Adversarial -- authorization attacks
-      ✓ Rejects unauthorized settle
-      ✓ Rejects unauthorized expire
-      ✓ Rejects settle with wrong treasury
-    Adversarial -- double-action attacks
-      ✓ Rejects double settle (replay attack)
-      ✓ Rejects double expire (replay attack)
-      ✓ Rejects expire on settled round
-      ✓ Rejects deposit on expired round
-    Adversarial -- payout manipulation
-      ✓ Rejects evidence overpay
-      ✓ Rejects evidence wallet/amount count mismatch
-    Adversarial -- round ID manipulation
-      ✓ Rejects skipping round IDs
-      ✓ Rejects duplicate round ID
+    ...
 
-  29 passing
+  rollover-accounting
+    IDL & account checks
+      ✓ T001 GameState SIZE matches IDL
+      ✓ T002 rolloverBalance initializes correctly
+      ✓ T003 RoundSettled event includes rolloverOut
+      ✓ T004 RoundExpired event includes rolloverOut
+    Settle math
+      ✓ T005 winner receives 50% of pool
+      ...
+    Expire math
+      ✓ T014 buyback receives 47.5% of deposits only
+      ...
+    ...
+
+  128 passing
 ```
 
 ## Test Architecture
 
-### Setup
+### Two Test Files
 
-The test file at `tests/alons-box.ts` sets up:
+The test suite is split across two files that share a single local validator:
+
+| File | Tests | Focus |
+|------|-------|-------|
+| `tests/alons-box.ts` | 22 | Core flow, basic adversarial |
+| `tests/rollover-accounting.ts` | 106 | Rollover math, balance consistency, rounding, multi-round, deep adversarial |
+
+Both files share the same program state — `rollover-accounting.ts` detects whether `GameState` was already initialized by the first test file and syncs its round counter and treasury/buyback pubkeys from on-chain state.
+
+### Setup
 
 ```typescript
 const provider = anchor.AnchorProvider.env();
@@ -69,8 +74,6 @@ const program = anchor.workspace.AlonsBox as Program<AlonsBox>;
 const authority = provider.wallet;
 
 // Generated keypairs for test accounts
-const treasuryKeypair = Keypair.generate();
-const buybackKeypair = Keypair.generate();
 const player1 = Keypair.generate();
 const player2 = Keypair.generate();
 const player3 = Keypair.generate();
@@ -86,7 +89,7 @@ const [vaultPDA] = PublicKey.findProgramAddressSync(
 );
 ```
 
-Each player receives a 10 SOL airdrop from the local validator before tests begin.
+Each player receives airdropped SOL from the local validator before tests begin. The `rollover-accounting.ts` file adds mid-test re-airdrops before heavy balance-consistency sections.
 
 ### Helper Functions
 
@@ -116,39 +119,16 @@ function getDepositPDA(roundId: number, user: PublicKey): [PublicKey, number] {
     program.programId
   );
 }
-```
 
-### Test Flow
-
-Tests are stateful and sequential -- each test builds on the state from previous tests:
-
-```
-initialize → creates GameState + Vault
-    │
-    ├─ create_round(1) → Round 1 Active
-    │   ├─ deposit(player1, 0.3)
-    │   ├─ deposit(player2, 0.2)
-    │   ├─ deposit(player3, 0.1)
-    │   └─ settle(round 1) → Round 1 Settled, rollover in vault
-    │
-    ├─ create_round(2) → Round 2 Active (with rollover)
-    │   ├─ deposit(player1, 0.5)
-    │   └─ expire(round 2) → Round 2 Expired
-    │
-    ├─ error cases (use existing settled/expired rounds)
-    │
-    ├─ create_round(3) → Round 3 Active (for auth attack tests)
-    │   ├─ unauthorized settle attempt → rejected
-    │   ├─ unauthorized expire attempt → rejected
-    │   └─ wrong treasury settle attempt → rejected
-    │
-    ├─ create_round(4) → Round 4 Active (for payout manipulation tests)
-    │   ├─ evidence overpay attempt → rejected
-    │   └─ evidence mismatch attempt → rejected
-    │
-    └─ round ID manipulation tests
-        ├─ create_round(99) → rejected (skipping)
-        └─ create_round(1) → rejected (duplicate)
+// Vault balance consistency check (rollover-accounting.ts)
+async function assertVaultConsistency() {
+  const vaultBal = await provider.connection.getBalance(vaultPDA);
+  const gs = await program.account.gameState.fetch(gameStatePDA);
+  const rent = await provider.connection.getMinimumBalanceForRentExemption(9);
+  expect(vaultBal).to.equal(
+    gs.rolloverBalance.toNumber() + rent + vaultSurplus
+  );
+}
 ```
 
 ## Test Coverage
@@ -156,134 +136,85 @@ initialize → creates GameState + Vault
 ### Summary
 
 ```
-29 tests total
-├── 1  Initialization
-├── 4  Round 1: Settle flow (core path)
-├── 3  Round 2: Expire flow (core path)
-├── 3  Error cases (basic rejection)
-├── 3  Authorization attacks
-├── 4  Double-action / replay attacks
-├── 2  Payout manipulation
-├── 2  Round ID manipulation
-├── 3  Emergency expire
-├── 2  Account closing (close_deposit, close_round)
-└── 2  Timer / edge cases
+128 tests total
+├──  22  alons-box.ts (core flow + basic adversarial)
+└── 106  rollover-accounting.ts
+     ├──  4  IDL & account checks
+     ├──  9  Settle math (balance verification)
+     ├──  6  Expire math (deposits-only verification)
+     ├──  9  Rounding dust (odd amounts, 1 lamport, primes)
+     ├──  4  Multi-round accumulation (5-round chains)
+     ├──  6  Emergency expire (timing, math, edge cases)
+     ├──  8  Authorization attacks
+     ├──  7  Double-action / replay attacks
+     ├──  5  Payout manipulation
+     ├──  7  Commit hash attacks
+     ├──  3  Round ID manipulation
+     ├──  8  Close instructions
+     ├──  9  Balance consistency
+     ├──  4  Deposit edge cases
+     ├──  4  Rollover preservation invariants
+     ├──  3  Event emission
+     └── 10  Additional edge cases
 ```
 
-### Core Flow Tests (8 tests)
+### Core Flow Tests (alons-box.ts)
 
-#### Initialization
+- **Initialization** — Sets up GameState and Vault, verifies authority, treasury, buyback, `current_round_id == 0`
+- **Settle flow** — Creates round, deposits from 3 players, settles with winner + evidence, verifies exact balance changes
+- **Expire flow** — Creates round with rollover, deposits, expires, verifies payouts from deposits only
+- **Error cases** — Unauthorized create_round, wrong commit hash, deposit on settled round
+- **Auth attacks** — Unauthorized settle/expire, fake treasury
+- **Replay attacks** — Double settle, double expire, cross-status transitions
+- **Payout manipulation** — Evidence overpay, wallet/amount mismatch
+- **Round ID manipulation** — Skip IDs, duplicate IDs
+- **Emergency expire** — Permissionless expiry after 24hr grace, timing enforcement
+- **Account closing** — close_deposit and close_round after settlement
 
-**"Initializes the game state"**
-- Calls `initialize` with treasury and buyback wallet pubkeys
-- Verifies: authority set correctly, treasury set, buyback wallet set, `current_round_id == 0`
+### Rollover Accounting Tests (rollover-accounting.ts)
 
-#### Round 1: Settle Flow
+#### IDL & Account Checks (T001-T004)
+Validates GameState SIZE matches the IDL, `rolloverBalance` field exists and initializes correctly, and settlement/expiry events include `rolloverOut`.
 
-**"Creates round 1"**
-- Creates round with `round_id: 1`, commit hash, and deadline
-- Verifies: round_id, commit_hash, ends_at, status = Active, total_deposits = 0
+#### Settle Math (T005-T013)
+Verifies exact lamport-level payouts: 50% winner, evidence amounts, 5% treasury, residual rollover. Checks `game_state.rollover_balance` updates correctly. Tests with varying evidence allocations (0%, 15%, max 30%).
 
-**"Player 1 deposits 0.3 SOL"**
-- Player 1 deposits 300,000,000 lamports
-- Verifies: deposit.amount, round.total_deposits
+#### Expire Math (T014-T019)
+Verifies buyback receives 47.5% of **deposits only**, treasury receives 5% of deposits, and previous rollover is fully preserved. Validates `rollover_out = rollover_in + rollover_added`.
 
-**"Player 2 and Player 3 deposit"**
-- Player 2 deposits 0.2 SOL, Player 3 deposits 0.1 SOL
-- Verifies: cumulative total_deposits = 0.6 SOL
+#### Rounding Dust (T020-T028)
+Tests with amounts that produce non-trivial rounding: odd lamports, 1-lamport deposits, prime numbers (e.g., 999,999,937 lamports). Verifies vault balance consistency after every operation — no lamports lost to integer division.
 
-**"Settles round 1"**
-- Reveals answer and salt, distributes payouts
-- Verifies: status = Settled, revealed_answer, revealed_salt
-- Verifies exact balance changes: 50% to winner, evidence to player 2, 5% to treasury
+#### Multi-Round Accumulation (T029-T032)
+Runs 5-round chains with alternating settle/expire patterns. Verifies rollover compounds correctly across rounds and vault balance matches `rollover_balance + rent` after cleanup.
 
-#### Round 2: Expire Flow
+#### Emergency Expire (T033-T038)
+Tests permissionless expiry timing (rejects before 24hr, succeeds after), validates deposits-only math is identical to regular expire, and verifies rollover preservation.
 
-**"Creates round 2 with rollover"**
-- Creates round 2, verifies `rollover_in > 0` (from round 1's 15% rollover)
+#### Adversarial Tests (T039-T068)
+- **Auth attacks** — Non-authority settle/expire, fake treasury, fake buyback wallet, attacker as winner
+- **Double actions** — Re-settle, re-expire, cross-status transitions, deposit on closed rounds
+- **Payout manipulation** — Evidence over 30% cap, wallet/amount count mismatch, zero-amount evidence
+- **Commit hash attacks** — Wrong answer, wrong salt, swapped answer/salt, empty strings, near-miss answers
+- **Round ID** — Skip IDs, reuse IDs, future IDs
 
-**"Player 1 deposits 0.5 SOL"**
-- Deposits into round 2
+#### Close Instructions (T069-T076)
+Tests close_deposit and close_round after both settle and expire. Verifies rent recovery, prevents closing active rounds, and validates round_id matching on deposits.
 
-**"Expires round 2"**
-- Reveals answer and salt with no winner
-- Verifies: status = Expired, revealed_answer, revealed_salt
-- Verifies: 47.5% to buyback wallet, 5% to treasury, remaining in vault
+#### Balance Consistency (T077-T085)
+End-to-end vault consistency checks across full settle and expire flows. Verifies `vault_lamports == rollover_balance + rent + vaultSurplus` at every stage: after round creation, after deposits, after settlement/expiry.
 
-### Adversarial Tests (21 tests)
+#### Deposit Edge Cases (T086-T089)
+Multiple deposits from same player (accumulation), large deposits (20 SOL), multiple players in same round.
 
-#### Error Cases (3 tests)
+#### Rollover Preservation (T090-T093)
+Multi-round sequences verifying that expire preserves previous rollover completely, and settle computes rollover as the correct residual.
 
-**"Rejects unauthorized create_round"**
-- A non-authority keypair attempts to create a round
-- Expected: `Unauthorized` (6000)
+#### Event Emission (T094-T096)
+Verifies RoundSettled, RoundExpired, and EmergencyExpired events contain correct `rolloverOut` values by checking on-chain state matches expected post-event values.
 
-**"Rejects settle with wrong hash"**
-- Authority attempts to settle with incorrect answer/salt ("wrong"/"wrong")
-- Expected: `InvalidCommitHash` (6002)
-
-**"Rejects deposit on settled round"**
-- Player attempts to deposit into round 1 (status: Settled)
-- Expected: `RoundNotActive` (6001)
-
-#### Authorization Attacks (3 tests)
-
-**"Rejects unauthorized settle"**
-- An attacker keypair attempts to settle an active round, directing the winner payout to themselves
-- Expected: `Unauthorized` (6000)
-- Validates that attackers cannot intercept payouts by settling rounds they don't control
-
-**"Rejects unauthorized expire"**
-- An attacker keypair attempts to expire an active round
-- Expected: `Unauthorized` (6000)
-
-**"Rejects settle with wrong treasury"**
-- Authority attempts to settle but provides a fake treasury address instead of the real one
-- Expected: `Unauthorized` (6000)
-- Validates treasury address is checked against `GameState.treasury`, preventing fee redirection
-
-#### Double-Action / Replay Attacks (4 tests)
-
-**"Rejects double settle (replay attack)"**
-- Authority attempts to settle round 1 again (already Settled)
-- Expected: `RoundNotActive` (6001)
-- Validates that settled rounds cannot be re-settled to extract additional funds
-
-**"Rejects double expire (replay attack)"**
-- Authority attempts to expire round 2 again (already Expired)
-- Expected: `RoundNotActive` (6001)
-
-**"Rejects expire on settled round"**
-- Authority attempts to expire round 1 (which was settled, not expired)
-- Expected: `RoundNotActive` (6001)
-- Validates cross-status transitions are blocked
-
-**"Rejects deposit on expired round"**
-- Player attempts to deposit into round 2 (status: Expired)
-- Expected: `RoundNotActive` (6001)
-
-#### Payout Manipulation (2 tests)
-
-**"Rejects evidence overpay"**
-- Creates round 4, deposits 1 SOL
-- Attempts to settle with `evidence_amount = pool * 3000 / 10000 + 1` (one lamport over 30%)
-- Expected: `InvalidPayoutSum` (6003)
-- Validates the 30% evidence cap is strictly enforced
-
-**"Rejects evidence wallet/amount count mismatch"**
-- Provides 2 evidence amounts but only 1 remaining account
-- Expected: `EvidenceMismatch` (6007)
-- Prevents array indexing attacks
-
-#### Round ID Manipulation (2 tests)
-
-**"Rejects skipping round IDs"**
-- Attempts to create round 99 when next valid is round 5
-- Expected: `InvalidRoundId` (6008)
-
-**"Rejects duplicate round ID"**
-- Attempts to re-create round 1 (already exists)
-- Expected: Anchor constraint error (PDA already initialized)
+#### Additional Edge Cases (T097-T106)
+Settle with zero evidence, vault consistency pre/post settle, immediate round creation after settle, maximum evidence cap (exactly 30%), and combined multi-instruction flows.
 
 ## Writing New Tests
 
@@ -342,11 +273,21 @@ const expectedPayout = Math.floor(pool * 5000 / 10000); // 50%
 expect(balanceAfter - balanceBefore).to.equal(expectedPayout);
 ```
 
+### Vault Consistency Check
+
+```typescript
+// After settle or expire, verify vault balance matches explicit tracking
+const vaultBal = await provider.connection.getBalance(vaultPDA);
+const gs = await program.account.gameState.fetch(gameStatePDA);
+const rent = await provider.connection.getMinimumBalanceForRentExemption(9);
+expect(vaultBal).to.equal(gs.rolloverBalance.toNumber() + rent);
+```
+
 ## Test Environment
 
 - **Validator:** Local Solana test validator (started automatically by `anchor test`)
-- **Accounts:** Generated keypairs (authority = provider wallet, 3 player keypairs)
-- **Funding:** 10 SOL airdropped to each player keypair
+- **Accounts:** Generated keypairs (authority = provider wallet, 3 player keypairs per file)
+- **Funding:** SOL airdropped to each player keypair, with mid-test re-airdrops for heavy sections
 - **Timeout:** 1,000,000ms (extended for validator startup)
 
 ## Troubleshooting
@@ -363,6 +304,10 @@ pkill solana-test-validator
 
 Ensure tests run in order. Since tests are stateful, running a single test in isolation may fail due to missing prerequisite state.
 
+### "Account already in use" errors
+
+Both test files share a single validator. The `rollover-accounting.ts` file handles this by checking if `GameState` already exists before calling `initialize`. If you see this error, ensure the `before` hook properly detects existing state.
+
 ### Airdrop failures
 
 The local validator has a limited SOL supply. If airdrops fail, restart the validator:
@@ -372,3 +317,7 @@ anchor test --skip-build
 ```
 
 This creates a fresh validator instance.
+
+### Insufficient funds during tests
+
+Heavy test sections (balance consistency, large deposits) may exhaust player balances. The test suite includes mid-test re-airdrops before these sections. If a specific test fails with insufficient funds, add an airdrop in the `before` hook of the relevant `describe` block.

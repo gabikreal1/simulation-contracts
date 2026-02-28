@@ -27,7 +27,7 @@ The backend knows the answer during the round, but cannot profit from this knowl
 
 All SOL is held in the Vault PDA, which is owned by the program. The Vault has no private key -- it can only sign via Anchor's `seeds` constraint. Fund transfers out of the Vault can only occur through:
 - `settle` -- distributes according to the fixed BPS formula
-- `expire` -- distributes according to the fixed BPS formula
+- `expire` / `emergency_expire` -- distributes according to the fixed BPS formula
 
 There is no instruction that allows arbitrary withdrawal from the Vault.
 
@@ -110,7 +110,7 @@ All arithmetic operations use Rust's `checked_add` and `checked_mul`, returning 
 
 The `emergency_expire` instruction is permissionless -- any wallet can call it. It is time-gated: it can only execute when the current clock time exceeds `round.ends_at + 86400` (24 hours after the round deadline). This prevents griefing while ensuring players can recover funds if the backend disappears.
 
-The 24-hour grace period gives the authority ample time to settle or expire the round normally. After that, anyone can trigger emergency expiry, which distributes funds using the standard expire formula (47.5% buyback, 5% treasury, 47.5% rollover).
+The 24-hour grace period gives the authority ample time to settle or expire the round normally. After that, anyone can trigger emergency expiry, which distributes funds using the standard expire formula (47.5% buyback, 5% treasury from deposits only; previous rollover preserved).
 
 Note: `emergency_expire` does not reveal the answer -- the answer is forfeit in emergency scenarios.
 
@@ -128,11 +128,35 @@ Rent is returned to the authority wallet. This addresses the rent leakage concer
 
 The `create_round` instruction validates `ends_at > clock.unix_timestamp`, ensuring the round deadline is always in the future at creation time. This prevents the backend from creating rounds that are immediately expirable.
 
-### 11. On-Chain Event Monitoring
+### 11. Explicit Rollover Tracking
+
+**Guarantee:** Rollover is tracked explicitly and cannot be inflated by unsolicited vault deposits.
+
+`GameState.rollover_balance` stores the exact rollover amount in lamports. This value is updated after every `settle`, `expire`, and `emergency_expire`. The vault balance invariant is:
+
+```
+vault_lamports = rollover_balance + rent_exempt_minimum + active_deposits
+```
+
+Anyone can send SOL directly to the vault PDA, but unsolicited deposits are ignored by the game math — they sit as untracked surplus. This prevents donation-based attacks that could inflate the prize pool unexpectedly.
+
+On expire, only current-round deposits are split (47.5% buyback, 5% treasury, ~47.5% rollover added). The previous rollover is **fully preserved**, creating a growing prize pool that incentivizes future rounds.
+
+### 12. Residual Rounding
+
+**Guarantee:** No lamports are lost to integer-division rounding.
+
+Rollover is always computed as a residual (subtraction) rather than an independent BPS calculation:
+- **Settle:** `rollover = pool - winner - evidence - treasury`
+- **Expire:** `rollover_added = deposits - buyback - treasury`
+
+This guarantees that all rounding dust is captured in rollover, keeping the vault balance exactly consistent with `rollover_balance + rent`.
+
+### 13. On-Chain Event Monitoring
 
 **Guarantee:** All state transitions are observable off-chain.
 
-Every state-mutating instruction emits a structured event (`GameInitialized`, `RoundCreated`, `DepositMade`, `RoundSettled`, `RoundExpired`, `EmergencyExpired`, `DepositClosed`, `RoundClosed`). These events enable:
+Every state-mutating instruction emits a structured event (`GameInitialized`, `RoundCreated`, `DepositMade`, `RoundSettled`, `RoundExpired`, `EmergencyExpired`, `DepositClosed`, `RoundClosed`). Settlement and expiry events include `rollover_out` for tracking the rollover balance. These events enable:
 - Real-time monitoring of game activity
 - Detection of anomalous behavior (e.g., unexpected emergency expires)
 - Historical audit trail indexed via Solana event parsers

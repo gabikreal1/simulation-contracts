@@ -30,6 +30,7 @@ pub struct RoundSettled {
     pub winner_amount: u64,
     pub evidence_total: u64,
     pub treasury_amount: u64,
+    pub rollover_out: u64,
 }
 
 #[event]
@@ -38,6 +39,7 @@ pub struct RoundExpired {
     pub pool: u64,
     pub buyback_amount: u64,
     pub treasury_amount: u64,
+    pub rollover_out: u64,
 }
 
 #[event]
@@ -46,6 +48,7 @@ pub struct EmergencyExpired {
     pub pool: u64,
     pub buyback_amount: u64,
     pub treasury_amount: u64,
+    pub rollover_out: u64,
     pub caller: Pubkey,
 }
 

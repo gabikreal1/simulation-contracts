@@ -28,7 +28,7 @@ Program: J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa
 ## GameState
 
 **Seeds:** `["game_state"]`
-**Size:** 113 bytes (8 discriminator + 105 data)
+**Size:** 121 bytes (8 discriminator + 113 data)
 
 | Field | Type | Size | Description |
 |-------|------|------|-------------|
@@ -37,9 +37,10 @@ Program: J5LMxDvUSz5Agbo3bjpJZN17p4BNfqGNbrhU5vqNYrEa
 | `buyback_wallet` | `Pubkey` | 32 | Wallet receiving funds on expire |
 | `current_round_id` | `u64` | 8 | Counter tracking the latest round |
 | `bump` | `u8` | 1 | PDA bump seed |
+| `rollover_balance` | `u64` | 8 | Explicit rollover balance (lamports) |
 
 **Created by:** `initialize` (once, ever)
-**Modified by:** `create_round` (increments `current_round_id`)
+**Modified by:** `create_round` (increments `current_round_id`), `settle` (updates `rollover_balance`), `expire` (updates `rollover_balance`), `emergency_expire` (updates `rollover_balance`)
 
 ### Deriving the Address
 
@@ -59,7 +60,9 @@ const [gameStatePDA] = PublicKey.findProgramAddressSync(
 |-------|------|------|-------------|
 | `bump` | `u8` | 1 | PDA bump seed |
 
-The Vault is a minimal account -- its purpose is to hold SOL via its lamport balance, not to store data. The Vault's lamport balance represents the total escrowed funds across all active rounds plus any rollover.
+The Vault is a minimal account -- its purpose is to hold SOL via its lamport balance, not to store data. The Vault's lamport balance equals `GameState.rollover_balance + rent_exempt_minimum` plus any active-round deposits not yet settled/expired.
+
+Rollover is tracked explicitly in `GameState.rollover_balance`, not derived from the Vault's lamport balance. Unsolicited SOL transfers to the Vault PDA are ignored by the game math.
 
 **Created by:** `initialize` (once, ever)
 **Lamports modified by:** `deposit` (increases), `settle` (decreases), `expire` (decreases), `emergency_expire` (decreases)
@@ -151,8 +154,10 @@ const [depositPDA] = PublicKey.findProgramAddressSync(
 
 All PDAs are rent-exempt. The `initialize` instruction funds the GameState and Vault accounts, `create_round` funds the Round account, and `deposit` funds the Deposit account. Rent-exempt minimums are handled automatically by Anchor's `init` and `init_if_needed` constraints.
 
-When calculating rollover, the contract subtracts the vault's rent-exempt minimum from the lamport balance to determine the available pool:
+Rollover is tracked explicitly in `GameState.rollover_balance`. At round creation, the rollover is read directly from the game state rather than computed from the vault balance:
 
 ```
-available_pool = vault_lamports - rent_exempt_minimum
+round.rollover_in = game_state.rollover_balance
 ```
+
+After settle or expire, `game_state.rollover_balance` is updated to the new residual value. This ensures the vault balance always equals `rollover_balance + rent + active_deposits`.
